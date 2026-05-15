@@ -7,6 +7,9 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 const app = express();
+app.get("/", (req, res) => {
+  res.send("🚀 AstraCare Backend Running");
+});
 app.use(cors());
 app.use(express.json());
 
@@ -19,9 +22,7 @@ const io = new Server(server, {
 /* ================= DB (ATLAS) ================= */
 
 // 🔥 REPLACE THIS WITH YOUR URL
-mongoose.connect(
-  "mongodb+srv://srmsuser:saiteja143@cluster0.1fxldkb.mongodb.net/?appName=Cluster0/traffic",
-);
+mongoose.connect(process.env.MONGO_URL);
 
 mongoose.connection.on("connected", () => {
   console.log("✅ MongoDB Atlas connected");

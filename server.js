@@ -10,7 +10,11 @@ const app = express();
 app.get("/", (req, res) => {
   res.send("🚀 AstraCare Backend Running");
 });
-app.use(cors());
+app.use(
+  cors({
+    origin: "*",
+  }),
+);
 app.use(express.json());
 
 const server = http.createServer(app);

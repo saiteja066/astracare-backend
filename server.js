@@ -141,6 +141,37 @@ io.on("connection", (socket) => {
 });
 
 /* ================= SERVER ================= */
+// 🔥 Hospitals proxy (Overpass via backend)
+app.post("/hospitals", async (req, res) => {
+  const { lat, lng, radius = 4000 } = req.body;
+
+  if (!lat || !lng) {
+    return res.status(400).send("Missing coordinates");
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+    const overpassRes = await fetch("https://overpass-api.de/api/interpreter", {
+      method: "POST",
+      body: `
+          [out:json];
+          node["amenity"="hospital"](around:${radius},${lat},${lng});
+          out;
+        `,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    const data = await overpassRes.json();
+    return res.json(data);
+  } catch (err) {
+    console.log("❌ Overpass error:", err?.message);
+    return res.status(500).send("Hospital API error");
+  }
+});
 
 server.listen(5000, () => {
   console.log("🚀 Server running on http://localhost:5000");

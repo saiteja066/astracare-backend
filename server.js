@@ -145,50 +145,31 @@ app.post("/hospitals", async (req, res) => {
   const { lat, lng } = req.body;
 
   try {
-    // 🔥 helper function
-    const fetchData = async (radius) => {
-      const response = await fetch("https://overpass-api.de/api/interpreter", {
-        method: "POST",
-        body: `
-            [out:json];
-            node["amenity"="hospital"](around:${radius},${lat},${lng});
-            out;
-          `,
-      });
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=hospital&limit=15&viewbox=${lng - 0.2},${lat + 0.2},${lng + 0.2},${lat - 0.2}`;
 
-      return await response.json();
-    };
-
-    // 🔹 try small radius
-    let data = await fetchData(4000);
-
-    // 🔹 fallback bigger radius
-    if (!data.elements?.length) {
-      data = await fetchData(15000);
-    }
-
-    return res.json(data);
-  } catch (err) {
-    console.log("❌ Overpass failed, using fallback");
-
-    // 🔥 fallback dummy hospitals (IMPORTANT)
-    return res.json({
-      elements: [
-        {
-          lat: lat + 0.01,
-          lon: lng + 0.01,
-          tags: { name: "Nearby Hospital", operator: "Private" },
-        },
-        {
-          lat: lat - 0.01,
-          lon: lng - 0.01,
-          tags: { name: "City Care Hospital", operator: "Government" },
-        },
-      ],
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "astracare-app",
+      },
     });
+
+    const data = await response.json();
+
+    const hospitals = data.map((h) => ({
+      lat: parseFloat(h.lat),
+      lon: parseFloat(h.lon),
+      tags: {
+        name: h.display_name,
+        operator: "Hospital",
+      },
+    }));
+
+    res.json({ elements: hospitals });
+  } catch (err) {
+    console.log("❌ hospital api error", err);
+    res.status(500).send("Hospital fetch failed");
   }
 });
-
 server.listen(5000, () => {
   console.log("🚀 Server running on http://localhost:5000");
 });

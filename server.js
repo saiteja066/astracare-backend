@@ -155,14 +155,20 @@ app.post("/hospitals", async (req, res) => {
 
     const data = await response.json();
 
-    const hospitals = data.map((h) => ({
-      lat: parseFloat(h.lat),
-      lon: parseFloat(h.lon),
-      tags: {
-        name: h.display_name,
-        operator: "Hospital",
-      },
-    }));
+    const hospitals = data
+      .filter((h) => h.type === "hospital" || h.class === "amenity")
+      .map((h) => {
+        const nameParts = h.display_name.split(",");
+
+        return {
+          lat: parseFloat(h.lat),
+          lon: parseFloat(h.lon),
+          tags: {
+            name: nameParts[0],
+            operator: nameParts[1] || "Hospital",
+          },
+        };
+      });
 
     res.json({ elements: hospitals });
   } catch (err) {

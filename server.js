@@ -147,32 +147,51 @@ app.post("/hospitals", async (req, res) => {
   const { lat, lng } = req.body;
 
   try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=hospital&limit=15&viewbox=${lng - 0.2},${lat + 0.2},${lng + 0.2},${lat - 0.2}`;
+    // 🔥 TRY OVERPASS FIRST
+    try {
+      const overpass = await axios.post(
+        "https://overpass-api.de/api/interpreter",
+        `
+        [out:json];
+        node["amenity"="hospital"](around:4000,${lat},${lng});
+        out;
+        `,
+        { timeout: 8000 },
+      );
 
-    const response = await axios.get(url, {
+      if (overpass.data.elements?.length) {
+        return res.json(overpass.data);
+      }
+    } catch (err) {
+      console.log("⚠️ Overpass failed");
+    }
+
+    // 🔥 FALLBACK → NOMINATIM
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=hospital&limit=10&viewbox=${lng - 0.2},${lat + 0.2},${lng + 0.2},${lat - 0.2}`;
+
+    const nominatim = await axios.get(url, {
       headers: {
         "User-Agent": "astracare-app",
       },
+      timeout: 8000,
     });
 
-    const data = response.data;
-
-    const hospitals = data.map((h) => {
-      const nameParts = h.display_name.split(",");
+    const hospitals = nominatim.data.map((h) => {
+      const parts = h.display_name.split(",");
 
       return {
         lat: parseFloat(h.lat),
         lon: parseFloat(h.lon),
         tags: {
-          name: nameParts[0],
-          operator: nameParts[1] || "Hospital",
+          name: parts[0],
+          operator: parts[1] || "Hospital",
         },
       };
     });
 
-    res.json({ elements: hospitals });
+    return res.json({ elements: hospitals });
   } catch (err) {
-    console.log("❌ Hospital API error:", err.message);
+    console.log("❌ BOTH APIs FAILED:", err.message);
     res.status(500).send("Hospital fetch failed");
   }
 });

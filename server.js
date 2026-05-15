@@ -141,38 +141,38 @@ io.on("connection", (socket) => {
 });
 
 /* ================= SERVER ================= */
+const axios = require("axios");
+
 app.post("/hospitals", async (req, res) => {
   const { lat, lng } = req.body;
 
   try {
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=hospital&limit=15&viewbox=${lng - 0.2},${lat + 0.2},${lng + 0.2},${lat - 0.2}`;
 
-    const response = await fetch(url, {
+    const response = await axios.get(url, {
       headers: {
         "User-Agent": "astracare-app",
       },
     });
 
-    const data = await response.json();
+    const data = response.data;
 
-    const hospitals = data
-      .filter((h) => h.type === "hospital" || h.class === "amenity")
-      .map((h) => {
-        const nameParts = h.display_name.split(",");
+    const hospitals = data.map((h) => {
+      const nameParts = h.display_name.split(",");
 
-        return {
-          lat: parseFloat(h.lat),
-          lon: parseFloat(h.lon),
-          tags: {
-            name: nameParts[0],
-            operator: nameParts[1] || "Hospital",
-          },
-        };
-      });
+      return {
+        lat: parseFloat(h.lat),
+        lon: parseFloat(h.lon),
+        tags: {
+          name: nameParts[0],
+          operator: nameParts[1] || "Hospital",
+        },
+      };
+    });
 
     res.json({ elements: hospitals });
   } catch (err) {
-    console.log("❌ hospital api error", err);
+    console.log("❌ Hospital API error:", err.message);
     res.status(500).send("Hospital fetch failed");
   }
 });

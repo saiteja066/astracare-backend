@@ -3,7 +3,7 @@ import axios from "axios";
 
 const router = express.Router();
 
-/* 🔥 SAFE OVERPASS */
+/* SAFE OVERPASS */
 async function callOverpass(lat, lng, radius) {
   try {
     const query = `
@@ -22,41 +22,14 @@ async function callOverpass(lat, lng, radius) {
     );
 
     return res.data || { elements: [] };
-  } catch (err) {
-    console.log("Overpass failed");
+  } catch {
     return { elements: [] };
   }
 }
 
-/* 🚨 EMERGENCY */
-router.post("/emergency", async (req, res) => {
-  const { lat, lng } = req.body;
-
-  if (!lat || !lng) {
-    return res.json({ hospitals: [] });
-  }
-
-  try {
-    const data = await callOverpass(lat, lng, 5000);
-
-    const hospitals = (data.elements || []).map((el) => ({
-      name: el.tags?.name || "Unnamed Hospital",
-      lat: el.lat || el.center?.lat,
-      lng: el.lon || el.center?.lon,
-    }));
-
-    return res.json({ hospitals });
-  } catch (err) {
-    console.log("Emergency error");
-    return res.json({ hospitals: [] });
-  }
-});
-
-/* 🔎 SEARCH (NEVER FAIL VERSION) */
+/* SEARCH */
 router.post("/search", async (req, res) => {
   const { lat, lng, query } = req.body;
-
-  console.log("REQ:", lat, lng, query);
 
   if (!lat || !lng) {
     return res.json({ hospitals: [] });
@@ -65,29 +38,23 @@ router.post("/search", async (req, res) => {
   try {
     let hospitals = [];
 
-    /* 🔥 TRY OVERPASS */
-    try {
-      const data = await callOverpass(lat, lng, 10000);
+    const data = await callOverpass(lat, lng, 10000);
 
-      hospitals = (data.elements || [])
-        .map((el) => ({
-          name: el.tags?.name || "Unnamed Hospital",
-          lat: el.lat || el.center?.lat,
-          lng: el.lon || el.center?.lon,
-        }))
-        .filter((h) =>
-          query ? h.name.toLowerCase().includes(query.toLowerCase()) : true,
-        );
-    } catch {
-      console.log("Overpass skipped");
-    }
+    hospitals = (data.elements || [])
+      .map((el) => ({
+        name: el.tags?.name || "Unnamed Hospital",
+        lat: el.lat || el.center?.lat,
+        lng: el.lon || el.center?.lon,
+      }))
+      .filter((h) =>
+        query ? h.name.toLowerCase().includes(query.toLowerCase()) : true,
+      );
 
-    /* ✅ IF FOUND */
     if (hospitals.length > 0) {
       return res.json({ hospitals });
     }
 
-    /* 🔥 FALLBACK (ALWAYS WORKS) */
+    /* FALLBACK */
     const response = await axios.get(
       "https://nominatim.openstreetmap.org/search",
       {
@@ -106,19 +73,31 @@ router.post("/search", async (req, res) => {
     }));
 
     return res.json({ hospitals: fallback });
-  } catch (err) {
-    console.log("FINAL ERROR:", err.message);
+  } catch {
+    return res.json({ hospitals: [] });
+  }
+});
 
-    /* 🚑 LAST SAFETY */
-    return res.json({
-      hospitals: [
-        {
-          name: "Nearby Hospital",
-          lat: lat,
-          lng: lng,
-        },
-      ],
-    });
+/* EMERGENCY */
+router.post("/emergency", async (req, res) => {
+  const { lat, lng } = req.body;
+
+  if (!lat || !lng) {
+    return res.json({ hospitals: [] });
+  }
+
+  try {
+    const data = await callOverpass(lat, lng, 5000);
+
+    const hospitals = (data.elements || []).map((el) => ({
+      name: el.tags?.name || "Unnamed Hospital",
+      lat: el.lat || el.center?.lat,
+      lng: el.lon || el.center?.lon,
+    }));
+
+    return res.json({ hospitals });
+  } catch {
+    return res.json({ hospitals: [] });
   }
 });
 

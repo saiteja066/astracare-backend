@@ -3,7 +3,7 @@ import axios from "axios";
 
 const router = express.Router();
 
-/* 🔥 HELPER */
+/* HELPER */
 function delay(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
@@ -81,7 +81,7 @@ router.post("/search", async (req, res) => {
       return res.json({ hospitals });
     }
 
-    /* 🔥 FALLBACK */
+    /* FALLBACK */
     const response = await axios.get(
       "https://nominatim.openstreetmap.org/search",
       {

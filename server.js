@@ -1,8 +1,8 @@
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
-import hospitalRoutes from "./routes/hospitals.js";
 import dotenv from "dotenv";
+import hospitalRoutes from "./routes/hospitals.js";
 
 dotenv.config();
 

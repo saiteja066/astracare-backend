@@ -96,6 +96,26 @@ app.post("/hospitals", async (req, res) => {
   }
 });
 
+io.on("connection", (socket) => {
+  console.log("Client connected");
+
+  setInterval(async () => {
+    let vehicles = await Vehicle.find();
+
+    vehicles = vehicles.map((v) => {
+      const speed = Math.random() * 40;
+
+      return {
+        ...v._doc,
+        lat: v.lat + (Math.random() - 0.5) * 0.001,
+        lng: v.lng + (Math.random() - 0.5) * 0.001,
+        speed,
+      };
+    });
+
+    io.emit("vehicleUpdate", vehicles);
+  }, 2000);
+});
 /* ================= SERVER ================= */
 app.listen(5000, () => {
   console.log("🚀 Server running on port 5000");
